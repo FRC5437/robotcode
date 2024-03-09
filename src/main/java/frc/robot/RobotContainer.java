@@ -9,6 +9,7 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -32,6 +33,7 @@ public class RobotContainer {
   private final ArmSubsystem m_arm = new ArmSubsystem();
   private final IntakeSubsystem m_intake = new IntakeSubsystem();
   private final LauncherSubsystem m_launcher = new LauncherSubsystem();
+  private SlewRateLimiter m_filter = new SlewRateLimiter(0.5);
 
   private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
   private double MaxAngularRate = 1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
@@ -51,9 +53,9 @@ public class RobotContainer {
 
   private void configureBindings() {
     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
-        drivetrain.applyRequest(() -> drive.withVelocityX(squareInput(joystick.getLeftY(), 0.05) * MaxSpeed) // Drive forward with
+        drivetrain.applyRequest(() -> drive.withVelocityX(modifyInput(joystick.getLeftY(), 0.05) * MaxSpeed) // Drive forward with
                                                                                            // negative Y (forward)
-            .withVelocityY(squareInput(joystick.getLeftX(), 0.05) * MaxSpeed) // Drive left with negative X (left)
+            .withVelocityY(modifyInput(joystick.getLeftX(), 0.05) * MaxSpeed) // Drive left with negative X (left)
             .withRotationalRate(joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
         ));
 
@@ -127,8 +129,9 @@ public class RobotContainer {
         .onTrue(m_intake.feedLauncher(m_launcher));
   }
 
-  public static double squareInput(double _value, double _deadband) {
-    return Math.pow(MathUtil.applyDeadband(_value, _deadband), 4) * Math.signum(_value);
+  private double modifyInput(double _value, double _deadband) {
+    double value = m_filter.calculate(_value); //Slew rate limited
+    return MathUtil.applyDeadband(value, _deadband);
   }
 
 }
