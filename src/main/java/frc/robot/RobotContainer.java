@@ -33,7 +33,9 @@ public class RobotContainer {
   private final ArmSubsystem m_arm = new ArmSubsystem();
   private final IntakeSubsystem m_intake = new IntakeSubsystem();
   private final LauncherSubsystem m_launcher = new LauncherSubsystem();
-  private SlewRateLimiter m_filter = new SlewRateLimiter(0.5);
+  private SlewRateLimiter m_Xfilter = new SlewRateLimiter(2);
+  private SlewRateLimiter m_Yfilter = new SlewRateLimiter(2);
+
 
   private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
   private double MaxAngularRate = 1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
@@ -53,9 +55,9 @@ public class RobotContainer {
 
   private void configureBindings() {
     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
-        drivetrain.applyRequest(() -> drive.withVelocityX(modifyInput(joystick.getLeftY(), 0.05) * MaxSpeed) // Drive forward with
+        drivetrain.applyRequest(() -> drive.withVelocityX(modifyXInput(joystick.getLeftY(), 0.05) * MaxSpeed) // Drive forward with
                                                                                            // negative Y (forward)
-            .withVelocityY(modifyInput(joystick.getLeftX(), 0.05) * MaxSpeed) // Drive left with negative X (left)
+            .withVelocityY(modifyYInput(joystick.getLeftX(), 0.05) * MaxSpeed) // Drive left with negative X (left)
             .withRotationalRate(joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
         ));
 
@@ -129,9 +131,14 @@ public class RobotContainer {
         .onTrue(m_intake.feedLauncher(m_launcher));
   }
 
-  private double modifyInput(double _value, double _deadband) {
-    double value = m_filter.calculate(_value); //Slew rate limited
-    return MathUtil.applyDeadband(value, _deadband);
+  private double modifyXInput(double _value, double _deadband){
+    double x_value = m_Xfilter.calculate(_value);
+    return MathUtil.applyDeadband(x_value, _deadband);
+  }
+
+  private double modifyYInput(double _value, double _deadband){
+    double y_value = m_Yfilter.calculate(_value);
+    return MathUtil.applyDeadband(y_value, _deadband);  
   }
 
 }
