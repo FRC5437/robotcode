@@ -94,8 +94,11 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
+    return new InstantCommand(() -> m_launcher.runLauncher(), m_launcher)
+      .andThen(new WaitCommand(2))  //.andThen(m_launcher.stopLauncher(), m_launcher)
+      .andThen(m_intake.feedLauncher(m_launcher));
     //return new WaitCommand(1.0);
-    return runAuto;
+    //return runAuto;
   }
 
   private void configureButtonBindings() {
